@@ -257,18 +257,18 @@ contract Voting is Ownable {
     function countVotes() external onlyOwner {
         require(currentStatus == WorkflowStatus.VotingSessionEnded, "Voting session isn't finished.");
 
-        uint lastGreatestNbOfVotes = 0;
+        uint lastHighestNbOfVotes = 0;
         for (uint _proposalId = 0; _proposalId < proposals.length; _proposalId++) {
             // A new most voted proposal has been identified.
-            if (proposals[_proposalId].voteCount > lastGreatestNbOfVotes) {
-                lastGreatestNbOfVotes = proposals[_proposalId].voteCount;
+            if (proposals[_proposalId].voteCount > lastHighestNbOfVotes) {
+                lastHighestNbOfVotes = proposals[_proposalId].voteCount;
 
                 // As the proposal has more vote than any previous ones, we delete the
                 // previous most voted proposals and push the new one.
                 delete winningProposalsIds;
                 winningProposalsIds.push(_proposalId);
             }
-            else if (proposals[_proposalId].voteCount == lastGreatestNbOfVotes) {
+            else if (proposals[_proposalId].voteCount == lastHighestNbOfVotes) {
                 // We add any new proposal having the exact same count of votes
                 // than the greatestNbOfVotes yet.
                 winningProposalsIds.push(_proposalId);
