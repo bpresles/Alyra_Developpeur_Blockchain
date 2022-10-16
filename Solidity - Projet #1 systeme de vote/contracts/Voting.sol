@@ -204,7 +204,7 @@ contract Voting is Ownable {
      *
      * @return Proposal[] The _proposals list.
      */
-    function get_proposalsList() external view onlyRegisteredVoterOrOwner returns(Proposal[] memory) {
+    function getProposalsList() external view onlyRegisteredVoterOrOwner returns(Proposal[] memory) {
         require(_currentStatus >= WorkflowStatus.ProposalsRegistrationEnded, "Proposals registrations are not finished.");
 
         return _proposals;
