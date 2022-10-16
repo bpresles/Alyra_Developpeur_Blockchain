@@ -47,16 +47,16 @@ contract Voting is Ownable {
     // Winning Proposals that can be viewed by anyone.
     uint[] private _winningProposalsIds;
 
-    // Count the total number of votes for control prupose.
-    uint private _totalNbVotes;
-
-    // Events.
+    // Workflow events.
     event VoterRegistered(address voterAddress);
     event WorkflowStatusChange(WorkflowStatus previousStatus, WorkflowStatus newStatus);
     event ProposalRegistered(uint proposalId);
     event Voted(address voter, uint proposalId);
+
+    // Results events
+    event NoWinner();
     event UniqueWinner(uint proposalId);
-    event DrawResult(uint[] proposalsIds);
+    event DrawWinners(uint[] proposalsIds);
 
     /** 
      * Modifiers used to restrict functions to registered voters.
@@ -132,7 +132,7 @@ contract Voting is Ownable {
      */
     function startProposalsRegistrations() external onlyOwner {
         require(_currentStatus == WorkflowStatus.RegisteringVoters, "Current status doesn't allow to start the _proposals registations.");
-        require(_registeredVotersAddresses.length > 1, "There is not enough voters registered. There must be at least 2 voters to start the process.");
+        require(_registeredVotersAddresses.length > 0, "There must be at least 1 voter to start the proposal registration process.");
 
         _updateWorkflowStatus(_currentStatus, WorkflowStatus.ProposalsRegistrationStarted);
     }
@@ -146,7 +146,7 @@ contract Voting is Ownable {
      */
     function endProposalsRegistrations() external onlyOwner {
         require(_currentStatus == WorkflowStatus.ProposalsRegistrationStarted, "Current status doesn't allow to end the _proposals registations");
-        require(_proposals.length > 1, "There are not enough proposals. To have a meaning for the vote, there must be at least 2 _proposals.");
+        require(_proposals.length > 0, "There must be at least 1 proposal registered before ending the proposal registration process.");
 
         _updateWorkflowStatus(_currentStatus, WorkflowStatus.ProposalsRegistrationEnded);
     }
@@ -173,7 +173,6 @@ contract Voting is Ownable {
      */
     function endVotingSession() external onlyOwner {
         require(_currentStatus == WorkflowStatus.VotingSessionStarted, "Current status doesn't allow to end the voting session.");
-        require(_totalNbVotes > 1, "There should be more than 1 vote before the voting session can be ended.");
 
         _updateWorkflowStatus(_currentStatus, WorkflowStatus.VotingSessionEnded);
     }
@@ -241,7 +240,6 @@ contract Voting is Ownable {
 
         _proposals[_proposalId].voteCount++;
         _registeredVoters[msg.sender].hasVoted = true;
-        _totalNbVotes++;
         
         emit Voted(msg.sender, _proposalId);
     }
@@ -268,7 +266,7 @@ contract Voting is Ownable {
                 delete _winningProposalsIds;
                 _winningProposalsIds.push(_proposalId);
             }
-            else if (_proposals[_proposalId].voteCount == lastHighestNbOfVotes) {
+            else if (_proposals[_proposalId].voteCount > 0 && _proposals[_proposalId].voteCount == lastHighestNbOfVotes) {
                 // We add any new proposal having the exact same count of votes
                 // than the lastHighestNbOfVotes yet.
                 _winningProposalsIds.push(_proposalId);
@@ -278,8 +276,10 @@ contract Voting is Ownable {
         _updateWorkflowStatus(_currentStatus, WorkflowStatus.VotesTallied);
 
         // Emit events indicating if a clear winner has been determined or if the result is a draw.
-        if (_winningProposalsIds.length > 1) {
-            emit DrawResult(_winningProposalsIds);
+        if (_winningProposalsIds.length == 0) {
+            emit NoWinner();
+        } else if(_winningProposalsIds.length > 1) {
+            emit DrawWinners(_winningProposalsIds);
         } else {
             emit UniqueWinner(_winningProposalsIds[0]);
         }
@@ -307,6 +307,5 @@ contract Voting is Ownable {
         }
         delete _registeredVotersAddresses;
         delete _winningProposalsIds;
-        delete _totalNbVotes;
     }
 }
