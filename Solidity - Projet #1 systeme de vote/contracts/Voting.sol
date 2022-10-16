@@ -33,22 +33,22 @@ contract Voting is Ownable {
     }
 
     // Whitelist of registered voters
-    mapping(address => Voter) private registeredVoters;
+    mapping(address => Voter) private _registeredVoters;
 
     // We keeps voters addresses to be able to reset the map.
-    address[] private registeredVotersAddresses;
+    address[] private _registeredVotersAddresses;
 
     // Proposals list. Array indexed are used as proposal ids.
-    Proposal[] private proposals;
+    Proposal[] private _proposals;
 
     // Keeping the current status.
-    WorkflowStatus private currentStatus;
+    WorkflowStatus private _currentStatus;
 
-    // Winning proposals that can be viewed by anyone.
-    uint[] private winningProposalsIds;
+    // Winning Proposals that can be viewed by anyone.
+    uint[] private _winningProposalsIds;
 
     // Count the total number of votes for control prupose.
-    uint totalNbVotes;
+    uint private _totalNbVotes;
 
     // Events.
     event VoterRegistered(address voterAddress);
@@ -62,7 +62,7 @@ contract Voting is Ownable {
      * Modifiers used to restrict functions to registered voters.
      */
     modifier onlyRegisteredVoter {
-        require(registeredVoters[msg.sender].isRegistered, "You must be a registered voter.");
+        require(_registeredVoters[msg.sender].isRegistered, "You must be a registered voter.");
         _;
     }
 
@@ -70,33 +70,33 @@ contract Voting is Ownable {
      * Modifiers used to restrict functions to registered voters or owner.
      */
     modifier onlyRegisteredVoterOrOwner {
-        require(registeredVoters[msg.sender].isRegistered || msg.sender == owner(), "You must be a registered voter or owner.");
+        require(_registeredVoters[msg.sender].isRegistered || msg.sender == owner(), "You must be a registered voter or owner.");
         _;
     }
 
     /**
      * Utility method to switch status.
      * 
-     * @param _previousStatus WorkFlowStatus The previous status before the status change.
-     * @param _newStatus WorkFlowStatus The new status to switch to.
+     * @param previousStatus WorkFlowStatus The previous status before the status change.
+     * @param newStatus WorkFlowStatus The new status to switch to.
      * 
      * Emits a {WorkflowStatusChange} event.
      */
-    function updateWorkflowStatus(WorkflowStatus _previousStatus, WorkflowStatus _newStatus) private {
-        currentStatus = _newStatus;
-        emit WorkflowStatusChange(_previousStatus, _newStatus);
+    function _updateWorkflowStatus(WorkflowStatus previousStatus, WorkflowStatus newStatus) private {
+        _currentStatus = newStatus;
+        emit WorkflowStatusChange(previousStatus, newStatus);
     }
 
     /**
      * Returns whether a proposal has already been proposed.
      *
-     * @param _description string Proposal description.
+     * @param description string Proposal description.
      *
      * @return bool Returns true if the proposal exists, false otherwise.
      */
-    function _proposalAlreadyExists(string calldata _description) private view returns(bool) {
-        for (uint i = 0; i < proposals.length; i++) {
-            if ((keccak256(abi.encodePacked((_description))) == keccak256(abi.encodePacked((proposals[i].description))))) {
+    function _proposalAlreadyExists(string calldata description) private view returns(bool) {
+        for (uint i = 0; i < _proposals.length; i++) {
+            if ((keccak256(abi.encodePacked((description))) == keccak256(abi.encodePacked((_proposals[i].description))))) {
                 return true;
             }
         }
@@ -109,19 +109,18 @@ contract Voting is Ownable {
      * 
      * Only accessing to contract owner.
      * 
-     * @param _voterAddr address The voter address to register.
+     * @param voterAddr address The voter address to register.
      * 
      * Emits a {WorkflowStatusChange} event.
      */
-    function registerVoter(address _voterAddr) external onlyOwner {
-        require(currentStatus == WorkflowStatus.RegisteringVoters, "Current status doesn't allow new voter registration.");
-        require(_voterAddr != owner(), "The administrator can't register himself as voter.");    
-        require(!registeredVoters[_voterAddr].isRegistered, "Voter already registered.");   
+    function registerVoter(address voterAddr) external onlyOwner {
+        require(_currentStatus == WorkflowStatus.RegisteringVoters, "Current status doesn't allow new voter registration."); 
+        require(!_registeredVoters[voterAddr].isRegistered, "Voter already registered.");   
 
-        registeredVoters[_voterAddr] = Voter(true, false, 0);
-        registeredVotersAddresses.push(_voterAddr);
+        _registeredVoters[voterAddr] = Voter(true, false, 0);
+        _registeredVotersAddresses.push(voterAddr);
 
-        emit VoterRegistered(_voterAddr);
+        emit VoterRegistered(voterAddr);
     }
 
     /**
@@ -132,10 +131,10 @@ contract Voting is Ownable {
      * Emits a {WorkflowStatusChange} event.
      */
     function startProposalsRegistrations() external onlyOwner {
-        require(currentStatus == WorkflowStatus.RegisteringVoters, "Current status doesn't allow to start the proposals registations.");
-        require(registeredVotersAddresses.length > 1, "There is not enough voters registered. There must be at least 2 voters to start the process.");
+        require(_currentStatus == WorkflowStatus.RegisteringVoters, "Current status doesn't allow to start the _proposals registations.");
+        require(_registeredVotersAddresses.length > 1, "There is not enough voters registered. There must be at least 2 voters to start the process.");
 
-        updateWorkflowStatus(currentStatus, WorkflowStatus.ProposalsRegistrationStarted);
+        _updateWorkflowStatus(_currentStatus, WorkflowStatus.ProposalsRegistrationStarted);
     }
 
     /**
@@ -146,10 +145,10 @@ contract Voting is Ownable {
      * Emits a {WorkflowStatusChange} event.
      */
     function endProposalsRegistrations() external onlyOwner {
-        require(currentStatus == WorkflowStatus.ProposalsRegistrationStarted, "Current status doesn't allow to end the proposals registations");
-        require(proposals.length > 1, "There are not enough proposals. To have a meaning for the vote, there must be at least 2 proposals.");
+        require(_currentStatus == WorkflowStatus.ProposalsRegistrationStarted, "Current status doesn't allow to end the _proposals registations");
+        require(_proposals.length > 1, "There are not enough proposals. To have a meaning for the vote, there must be at least 2 _proposals.");
 
-        updateWorkflowStatus(currentStatus, WorkflowStatus.ProposalsRegistrationEnded);
+        _updateWorkflowStatus(_currentStatus, WorkflowStatus.ProposalsRegistrationEnded);
     }
 
     /**
@@ -160,9 +159,9 @@ contract Voting is Ownable {
      * Emits a {WorkflowStatusChange} event.
      */
     function startVotingSession() external onlyOwner {
-        require(currentStatus == WorkflowStatus.ProposalsRegistrationEnded, "Current status doesn't allow to start the voting session.");
+        require(_currentStatus == WorkflowStatus.ProposalsRegistrationEnded, "Current status doesn't allow to start the voting session.");
         
-        updateWorkflowStatus(currentStatus, WorkflowStatus.VotingSessionStarted);
+        _updateWorkflowStatus(_currentStatus, WorkflowStatus.VotingSessionStarted);
     }
 
     /**
@@ -173,10 +172,10 @@ contract Voting is Ownable {
      * Emits a {WorkflowStatusChange} event.
      */
     function endVotingSession() external onlyOwner {
-        require(currentStatus == WorkflowStatus.VotingSessionStarted, "Current status doesn't allow to end the voting session.");
-        require(totalNbVotes > 1, "There should be more than 1 vote before the voting session can be ended.");
+        require(_currentStatus == WorkflowStatus.VotingSessionStarted, "Current status doesn't allow to end the voting session.");
+        require(_totalNbVotes > 1, "There should be more than 1 vote before the voting session can be ended.");
 
-        updateWorkflowStatus(currentStatus, WorkflowStatus.VotingSessionEnded);
+        _updateWorkflowStatus(_currentStatus, WorkflowStatus.VotingSessionEnded);
     }
 
     /**
@@ -184,31 +183,31 @@ contract Voting is Ownable {
      * 
      * Only accessible to registered voters.
      *
-     * @param _description string calldata The proposal description.
+     * @param description string calldata The proposal description.
      * 
      * Emits a {ProposalRegistered} event.
      */
-    function makeProposal(string calldata _description) external onlyRegisteredVoter {
-        require(currentStatus == WorkflowStatus.ProposalsRegistrationStarted, "Proposals registrations are not opened.");
-        require(!_proposalAlreadyExists(_description), "This proposal has already been submitted.");
+    function makeProposal(string calldata description) external onlyRegisteredVoter {
+        require(_currentStatus == WorkflowStatus.ProposalsRegistrationStarted, "Proposals registrations are not opened.");
+        require(!_proposalAlreadyExists(description), "This proposal has already been submitted.");
 
-        Proposal memory proposal = Proposal(_description, 0);
-        proposals.push(proposal);
+        Proposal memory proposal = Proposal(description, 0);
+        _proposals.push(proposal);
 
-        emit ProposalRegistered(proposals.length-1);
+        emit ProposalRegistered(_proposals.length-1);
     }
 
     /**
-     * Allows voters to see the list of proposals.
+     * Allows voters to see the list of _proposals.
      * 
      * Only accessible to registered voters. Can only be consulted if the proposal process is already finished.
      *
-     * @return Proposal[] The proposals list.
+     * @return Proposal[] The _proposals list.
      */
-    function getProposalsList() external view onlyRegisteredVoterOrOwner returns(Proposal[] memory) {
-        require(currentStatus >= WorkflowStatus.ProposalsRegistrationEnded, "Proposals registrations are not finished.");
+    function get_proposalsList() external view onlyRegisteredVoterOrOwner returns(Proposal[] memory) {
+        require(_currentStatus >= WorkflowStatus.ProposalsRegistrationEnded, "Proposals registrations are not finished.");
 
-        return proposals;
+        return _proposals;
     }
 
     /**
@@ -222,9 +221,9 @@ contract Voting is Ownable {
      * @return Proposal The proposal associated to the passed id.
      */
     function getProposalDetails(uint _proposalId) external view onlyRegisteredVoterOrOwner returns(Proposal memory) {
-        require(currentStatus >= WorkflowStatus.ProposalsRegistrationEnded, "Proposals registrations are not finished.");
+        require(_currentStatus >= WorkflowStatus.ProposalsRegistrationEnded, "Proposals registrations are not finished.");
 
-        return proposals[_proposalId];
+        return _proposals[_proposalId];
     }
 
     /**
@@ -237,12 +236,12 @@ contract Voting is Ownable {
      * Emits a {Voted} event.
      */
     function voteForProposal(uint _proposalId) external onlyRegisteredVoter {
-        require(currentStatus == WorkflowStatus.VotingSessionStarted, "Voting session has not started.");
-        require(!registeredVoters[msg.sender].hasVoted, "You already voted for a proposal.");
+        require(_currentStatus == WorkflowStatus.VotingSessionStarted, "Voting session has not started.");
+        require(!_registeredVoters[msg.sender].hasVoted, "You already voted for a proposal.");
 
-        proposals[_proposalId].voteCount++;
-        registeredVoters[msg.sender].hasVoted = true;
-        totalNbVotes++;
+        _proposals[_proposalId].voteCount++;
+        _registeredVoters[msg.sender].hasVoted = true;
+        _totalNbVotes++;
         
         emit Voted(msg.sender, _proposalId);
     }
@@ -253,60 +252,61 @@ contract Voting is Ownable {
      * Only accessible to contract owner.
      * 
      * Emits a {WorkflowStatusChange} event.
+     * Emits a {DrawResult} or {UniqueWinner} event.
      */
     function countVotes() external onlyOwner {
-        require(currentStatus == WorkflowStatus.VotingSessionEnded, "Voting session isn't finished.");
+        require(_currentStatus == WorkflowStatus.VotingSessionEnded, "Voting session isn't finished.");
 
         uint lastHighestNbOfVotes = 0;
-        for (uint _proposalId = 0; _proposalId < proposals.length; _proposalId++) {
+        for (uint _proposalId = 0; _proposalId < _proposals.length; _proposalId++) {
             // A new most voted proposal has been identified.
-            if (proposals[_proposalId].voteCount > lastHighestNbOfVotes) {
-                lastHighestNbOfVotes = proposals[_proposalId].voteCount;
+            if (_proposals[_proposalId].voteCount > lastHighestNbOfVotes) {
+                lastHighestNbOfVotes = _proposals[_proposalId].voteCount;
 
                 // As the proposal has more vote than any previous ones, we delete the
                 // previous most voted proposals and push the new one.
-                delete winningProposalsIds;
-                winningProposalsIds.push(_proposalId);
+                delete _winningProposalsIds;
+                _winningProposalsIds.push(_proposalId);
             }
-            else if (proposals[_proposalId].voteCount == lastHighestNbOfVotes) {
+            else if (_proposals[_proposalId].voteCount == lastHighestNbOfVotes) {
                 // We add any new proposal having the exact same count of votes
-                // than the greatestNbOfVotes yet.
-                winningProposalsIds.push(_proposalId);
+                // than the lastHighestNbOfVotes yet.
+                _winningProposalsIds.push(_proposalId);
             }
         }
 
-        updateWorkflowStatus(currentStatus, WorkflowStatus.VotesTallied);
+        _updateWorkflowStatus(_currentStatus, WorkflowStatus.VotesTallied);
 
         // Emit events indicating if a clear winner has been determined or if the result is a draw.
-        if (winningProposalsIds.length > 1) {
-            emit DrawResult(winningProposalsIds);
+        if (_winningProposalsIds.length > 1) {
+            emit DrawResult(_winningProposalsIds);
         } else {
-            emit UniqueWinner(winningProposalsIds[0]);
+            emit UniqueWinner(_winningProposalsIds[0]);
         }
     }
 
     /**
      * Allows anyone to get the winning proposal(s).
      * 
-     * @return Proposals[] Winning proposal(s).
+     * @return _proposals[] Winning proposal(s).
      */
     function getWinner() external view returns(uint[] memory) {
-        require(currentStatus == WorkflowStatus.VotesTallied, "Votes hasn't been counted yet.");
+        require(_currentStatus == WorkflowStatus.VotesTallied, "Votes hasn't been counted yet.");
 
-        return winningProposalsIds;
+        return _winningProposalsIds;
     }
 
     /**
      * Function to reset the voting process all together.
      */
     function resetVotingProcess() external onlyOwner {
-        delete currentStatus;
-        delete proposals;
-        for (uint i = 0; i < registeredVotersAddresses.length; i++) {
-            delete registeredVoters[registeredVotersAddresses[i]];
+        delete _currentStatus;
+        delete _proposals;
+        for (uint i = 0; i < _registeredVotersAddresses.length; i++) {
+            delete _registeredVoters[_registeredVotersAddresses[i]];
         }
-        delete registeredVotersAddresses;
-        delete winningProposalsIds;
-        delete totalNbVotes;
+        delete _registeredVotersAddresses;
+        delete _winningProposalsIds;
+        delete _totalNbVotes;
     }
 }
