@@ -44,7 +44,7 @@ contract Voting is Ownable {
     // Keeping the current status.
     WorkflowStatus private _currentStatus;
 
-    // Winning Proposals.
+    // Winning Proposals that can be viewed by anyone.
     uint[] private _winningProposalsIds;
 
     // Count the total number of votes for control prupose.
