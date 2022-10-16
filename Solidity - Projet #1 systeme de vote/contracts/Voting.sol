@@ -44,8 +44,8 @@ contract Voting is Ownable {
     // Keeping the current status.
     WorkflowStatus private _currentStatus;
 
-    // Winning Proposals that can be viewed by anyone.
-    uint[] private _winningProposalsIds;
+    // Winning Proposals.
+    Proposal[] private _winningProposals;
 
     // Workflow events.
     event VoterRegistered(address voterAddress);
@@ -55,8 +55,8 @@ contract Voting is Ownable {
 
     // Results events
     event NoWinner();
-    event UniqueWinner(uint proposalId);
-    event DrawWinners(uint[] proposalsIds);
+    event UniqueWinner(Proposal proposalId);
+    event DrawWinners(Proposal[] proposalsIds);
 
     /** 
      * Modifiers used to restrict functions to registered voters.
@@ -263,37 +263,37 @@ contract Voting is Ownable {
 
                 // As the proposal has more vote than any previous ones, we delete the
                 // previous most voted proposals and push the new one.
-                delete _winningProposalsIds;
-                _winningProposalsIds.push(_proposalId);
+                delete _winningProposals;
+                _winningProposals.push(_proposals[_proposalId]);
             }
             else if (_proposals[_proposalId].voteCount > 0 && _proposals[_proposalId].voteCount == lastHighestNbOfVotes) {
                 // We add any new proposal having the exact same count of votes
                 // than the lastHighestNbOfVotes yet.
-                _winningProposalsIds.push(_proposalId);
+                _winningProposals.push(_proposals[_proposalId]);
             }
         }
 
         _updateWorkflowStatus(_currentStatus, WorkflowStatus.VotesTallied);
 
         // Emit events indicating if a clear winner has been determined or if the result is a draw.
-        if (_winningProposalsIds.length == 0) {
+        if (_winningProposals.length == 0) {
             emit NoWinner();
-        } else if(_winningProposalsIds.length > 1) {
-            emit DrawWinners(_winningProposalsIds);
+        } else if(_winningProposals.length > 1) {
+            emit DrawWinners(_winningProposals);
         } else {
-            emit UniqueWinner(_winningProposalsIds[0]);
+            emit UniqueWinner(_winningProposals[0]);
         }
     }
 
     /**
-     * Allows anyone to get the winning proposal(s).
+     * Allows anyone to get the winning proposal(s) details.
      * 
-     * @return _proposals[] Winning proposal(s).
+     * @return Proposal[] Winning proposal(s).
      */
-    function getWinner() external view returns(uint[] memory) {
+    function getWinner() external view returns(Proposal[] memory) {
         require(_currentStatus == WorkflowStatus.VotesTallied, "Votes hasn't been counted yet.");
 
-        return _winningProposalsIds;
+        return _winningProposals;
     }
 
     /**
@@ -306,6 +306,6 @@ contract Voting is Ownable {
             delete _registeredVoters[_registeredVotersAddresses[i]];
         }
         delete _registeredVotersAddresses;
-        delete _winningProposalsIds;
+        delete _winningProposals;
     }
 }
