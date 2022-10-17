@@ -9,7 +9,7 @@
   "scripts": {
     "compile": "truffle compile && yarn generate-types",
     "generate-types": "typechain --target=truffle-v5 --out-dir types 'build/contracts/*.json'",
-    "test": "truffle test"
+    "test": "yarn compile && truffle test"
   },
   "author": "",
   "license": "ISC",

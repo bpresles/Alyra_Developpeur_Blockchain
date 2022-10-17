@@ -2,11 +2,6 @@ import { VotingInstance } from "../types/Voting";
 
 const Voting = artifacts.require('Voting');
 
-/*
- * uncomment accounts to access the test accounts made available by the
- * Ethereum client
- * See docs: https://www.trufflesuite.com/docs/truffle/testing/writing-tests-in-javascript
- */
 contract("Voting", (accounts) => {
   
   const administrator = accounts[0];
@@ -107,7 +102,7 @@ contract("Voting", (accounts) => {
         await votingInstance.startProposalsRegistrations({ from: administrator });
 
         await votingInstance.makeProposal('Proposal 1', {from: accounts[1]});
-        
+
         await votingInstance.endProposalsRegistrations({ from: administrator });
 
         await votingInstance.startVotingSession({ from: administrator });
