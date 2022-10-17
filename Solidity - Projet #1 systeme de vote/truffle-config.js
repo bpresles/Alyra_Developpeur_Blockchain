@@ -1,6 +1,7 @@
-const HDWalletProvider = require("@truffle/hdwallet-provider");
 
-const mnemonicPhrase = "lawsuit sting mobile rack problem sick uncover short luggage notice seed sudden"; // 12 word mnemonic
+require("ts-node").register({
+  files: true,
+});
 
 module.exports = {
   networks: {
