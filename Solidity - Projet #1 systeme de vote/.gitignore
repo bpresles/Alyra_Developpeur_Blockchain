@@ -108,3 +108,6 @@ dist
 
 # Truffle
 build
+
+# Typescript
+types
