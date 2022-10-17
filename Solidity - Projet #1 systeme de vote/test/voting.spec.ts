@@ -68,7 +68,7 @@ contract("Voting", (accounts) => {
 
     it("should not allow end proposals process if there are no proposals", async function () {
       try {
-        await votingInstance.registerVoter(accounts[1]);
+        await votingInstance.registerVoter(account1);
 
         await votingInstance.startProposalsRegistrations({ from: administrator });
         await votingInstance.endProposalsRegistrations({ from: administrator });
@@ -82,11 +82,11 @@ contract("Voting", (accounts) => {
 
     it("should not allow not registered voter to make proposal", async function () {
       try {
-        await votingInstance.registerVoter(accounts[1], { from: administrator });
+        await votingInstance.registerVoter(account1, { from: administrator });
 
         await votingInstance.startProposalsRegistrations({ from: administrator });
 
-        await votingInstance.makeProposal('Proposal 1', {from: accounts[2]});
+        await votingInstance.makeProposal('Proposal 1', {from: account2});
         assert.isTrue(false);
       }
       catch (e: any) {
@@ -97,17 +97,17 @@ contract("Voting", (accounts) => {
 
     it("should not allow not registered voter to vote for a proposal", async function () {
       try {
-        await votingInstance.registerVoter(accounts[1], { from: administrator });
+        await votingInstance.registerVoter(account1, { from: administrator });
 
         await votingInstance.startProposalsRegistrations({ from: administrator });
 
-        await votingInstance.makeProposal('Proposal 1', {from: accounts[1]});
+        await votingInstance.makeProposal('Proposal 1', {from: account1});
 
         await votingInstance.endProposalsRegistrations({ from: administrator });
 
         await votingInstance.startVotingSession({ from: administrator });
 
-        await votingInstance.voteForProposal(0, {from: accounts[2]});
+        await votingInstance.voteForProposal(0, {from: account2});
 
         assert.isTrue(false);
       }
@@ -119,18 +119,18 @@ contract("Voting", (accounts) => {
 
     it("should not allow multiple votes for the same voter", async function () {
       try {
-        await votingInstance.registerVoter(accounts[1], { from: administrator });
+        await votingInstance.registerVoter(account1, { from: administrator });
 
         await votingInstance.startProposalsRegistrations({ from: administrator });
 
-        await votingInstance.makeProposal('Proposal 1', {from: accounts[1]});
+        await votingInstance.makeProposal('Proposal 1', {from: account1});
 
         await votingInstance.endProposalsRegistrations({ from: administrator });
 
         await votingInstance.startVotingSession({ from: administrator });
 
-        await votingInstance.voteForProposal(0, {from: accounts[1]});
-        await votingInstance.voteForProposal(0, {from: accounts[1]});
+        await votingInstance.voteForProposal(0, {from: account1});
+        await votingInstance.voteForProposal(0, {from: account1});
 
         assert.isTrue(false);
       }
@@ -142,19 +142,19 @@ contract("Voting", (accounts) => {
 
     // functional tests.
     it("Should designate no winner when there is no votes", async function() {
-      await votingInstance.registerVoter(accounts[1],{ from: administrator });
-      await votingInstance.registerVoter(accounts[2]),{ from: administrator };
-      await votingInstance.registerVoter(accounts[3],{ from: administrator });
-      await votingInstance.registerVoter(accounts[4],{ from: administrator });
+      await votingInstance.registerVoter(account1,{ from: administrator });
+      await votingInstance.registerVoter(account2),{ from: administrator };
+      await votingInstance.registerVoter(account3,{ from: administrator });
+      await votingInstance.registerVoter(account4,{ from: administrator });
 
       await votingInstance.startProposalsRegistrations({ from: administrator });
 
-      await votingInstance.makeProposal('Proposal 1', {from: accounts[1]});
-      await votingInstance.makeProposal('Proposal 2', {from: accounts[1]});
-      await votingInstance.makeProposal('Proposal 3', {from: accounts[2]});
-      await votingInstance.makeProposal('Proposal 4', {from: accounts[3]});
-      await votingInstance.makeProposal('Proposal 5', {from: accounts[3]});
-      await votingInstance.makeProposal('Proposal 6', {from: accounts[4]});
+      await votingInstance.makeProposal('Proposal 1', {from: account1});
+      await votingInstance.makeProposal('Proposal 2', {from: account1});
+      await votingInstance.makeProposal('Proposal 3', {from: account2});
+      await votingInstance.makeProposal('Proposal 4', {from: account3});
+      await votingInstance.makeProposal('Proposal 5', {from: account3});
+      await votingInstance.makeProposal('Proposal 6', {from: account4});
 
       await votingInstance.endProposalsRegistrations({ from: administrator });
 
@@ -164,37 +164,37 @@ contract("Voting", (accounts) => {
 
       await votingInstance.countVotes({from: administrator});
 
-      const winners = await votingInstance.getWinner({from: accounts[1]});
+      const winners = await votingInstance.getWinner({from: account1});
 
       assert.equal(winners.length, 0, 'Should designate no winner');
     });
 
     it("Should designate winner of proposal 1", async function() {
-      await votingInstance.registerVoter(accounts[1], { from: administrator });
-      await votingInstance.registerVoter(accounts[2], { from: administrator });
-      await votingInstance.registerVoter(accounts[3], { from: administrator });
+      await votingInstance.registerVoter(account1, { from: administrator });
+      await votingInstance.registerVoter(account2, { from: administrator });
+      await votingInstance.registerVoter(account3, { from: administrator });
 
       await votingInstance.startProposalsRegistrations({ from: administrator });
 
-      await votingInstance.makeProposal('Proposal 1', {from: accounts[1]});
-      await votingInstance.makeProposal('Proposal 2', {from: accounts[1]});
-      await votingInstance.makeProposal('Proposal 3', {from: accounts[2]});
-      await votingInstance.makeProposal('Proposal 4', {from: accounts[3]});
-      await votingInstance.makeProposal('Proposal 5', {from: accounts[3]});
+      await votingInstance.makeProposal('Proposal 1', {from: account1});
+      await votingInstance.makeProposal('Proposal 2', {from: account1});
+      await votingInstance.makeProposal('Proposal 3', {from: account2});
+      await votingInstance.makeProposal('Proposal 4', {from: account3});
+      await votingInstance.makeProposal('Proposal 5', {from: account3});
 
       await votingInstance.endProposalsRegistrations({ from: administrator });
 
       await votingInstance.startVotingSession({ from: administrator });
 
-      await votingInstance.voteForProposal(0, {from: accounts[1]});
-      await votingInstance.voteForProposal(0, {from: accounts[2]});
-      await votingInstance.voteForProposal(3, {from: accounts[3]});
+      await votingInstance.voteForProposal(0, {from: account1});
+      await votingInstance.voteForProposal(0, {from: account2});
+      await votingInstance.voteForProposal(3, {from: account3});
 
       await votingInstance.endVotingSession({ from: administrator });
 
       await votingInstance.countVotes({from: administrator});
 
-      const winners = await votingInstance.getWinner({from: accounts[1]});
+      const winners = await votingInstance.getWinner({from: account1});
 
       assert.equal(winners.length, 1, 'Should designate only 1 winner');
       assert.equal(winners[0][0], 'Proposal 1', 'Should designate proposal 1 as winner');
@@ -202,34 +202,34 @@ contract("Voting", (accounts) => {
     });
 
     it("Should designate proposals 1 and 4 as winners", async function() {
-      await votingInstance.registerVoter(accounts[1], { from: administrator });
-      await votingInstance.registerVoter(accounts[2], { from: administrator });
-      await votingInstance.registerVoter(accounts[3], { from: administrator });
-      await votingInstance.registerVoter(accounts[4], { from: administrator });
+      await votingInstance.registerVoter(account1, { from: administrator });
+      await votingInstance.registerVoter(account2, { from: administrator });
+      await votingInstance.registerVoter(account3, { from: administrator });
+      await votingInstance.registerVoter(account4, { from: administrator });
 
       await votingInstance.startProposalsRegistrations({ from: administrator });
 
-      await votingInstance.makeProposal('Proposal 1', {from: accounts[1]});
-      await votingInstance.makeProposal('Proposal 2', {from: accounts[1]});
-      await votingInstance.makeProposal('Proposal 3', {from: accounts[2]});
-      await votingInstance.makeProposal('Proposal 4', {from: accounts[3]});
-      await votingInstance.makeProposal('Proposal 5', {from: accounts[3]});
-      await votingInstance.makeProposal('Proposal 6', {from: accounts[4]});
+      await votingInstance.makeProposal('Proposal 1', {from: account1});
+      await votingInstance.makeProposal('Proposal 2', {from: account1});
+      await votingInstance.makeProposal('Proposal 3', {from: account2});
+      await votingInstance.makeProposal('Proposal 4', {from: account3});
+      await votingInstance.makeProposal('Proposal 5', {from: account3});
+      await votingInstance.makeProposal('Proposal 6', {from: account4});
 
       await votingInstance.endProposalsRegistrations({ from: administrator });
 
       await votingInstance.startVotingSession({ from: administrator });
 
-      await votingInstance.voteForProposal(0, {from: accounts[1]});
-      await votingInstance.voteForProposal(0, {from: accounts[2]});
-      await votingInstance.voteForProposal(3, {from: accounts[3]});
-      await votingInstance.voteForProposal(3, {from: accounts[4]});
+      await votingInstance.voteForProposal(0, {from: account1});
+      await votingInstance.voteForProposal(0, {from: account2});
+      await votingInstance.voteForProposal(3, {from: account3});
+      await votingInstance.voteForProposal(3, {from: account4});
 
       await votingInstance.endVotingSession({ from: administrator });
 
       await votingInstance.countVotes({from: administrator});
 
-      const winners = await votingInstance.getWinner({from: accounts[1]});
+      const winners = await votingInstance.getWinner({from: account1});
 
       assert.equal(winners.length, 2, 'Should designate 2 draw winners');
       assert.equal(winners[0][0], 'Proposal 1', 'Should designate proposal 1 as winner');
