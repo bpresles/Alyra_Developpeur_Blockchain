@@ -6,6 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * Simple voting system for small organizations.
  * 
+ * @title A simple voting contract
+ * @author Bertrand Presles - Alyra - Rinkeby
+ *   
  * Version 0.2 by Bertrand Presles of Alyra - Rinkeby.
  */
 contract Voting is Ownable {
